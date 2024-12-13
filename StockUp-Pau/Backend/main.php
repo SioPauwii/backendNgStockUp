@@ -48,18 +48,38 @@ try{
     switch ($_SERVER['REQUEST_METHOD']) {
     case 'GET':
         if($req[0] == "admin"){
-            if($req[1] == 'getallitem'){echo json_encode($admin->getAllItems());return;}
-            if($req[1] == 'getitembycategory'){echo json_encode($admin->sortItemsByCategory($data));return;}
-            if($req[1] == 'getitembystatus'){echo json_encode($admin->getItemsByStatus($data));return;}
-            if($req[1] == 'getitembyquantitydesc'){echo json_encode($admin->getItemsByQuantityDesc($data));return;}
-            if($req[1] == 'getitembyquantityasc'){echo json_encode($admin->getItemsByQuantityAsc($data));return;}
-            if($req[1] == 'getalluserlogs'){echo json_encode($admin->getAllUserLogs($data));return;}    
-            if($req[1] == 'getallarchiveditems'){echo json_encode($admin->getAllArchivedItem());return;}
+            $tokenRes = $auth->verifyTokenBackend("admin");
+                if($tokenRes['is_valid'] == true){
+                if($req[1] == 'getallitem'){echo json_encode($admin->getAllItems());return;}
+                if($req[1] == 'getitembycategory'){echo json_encode($admin->sortItemsByCategory($data));return;}
+                if($req[1] == 'getitembystatus'){echo json_encode($admin->getItemsByStatus($data));return;}
+                if($req[1] == 'getitembyquantitydesc'){echo json_encode($admin->getItemsByQuantityDesc($data));return;}
+                if($req[1] == 'getitembyquantityasc'){echo json_encode($admin->getItemsByQuantityAsc($data));return;}
+                if($req[1] == 'getalluserlogs'){echo json_encode($admin->getAllUserLogs($data));return;}    
+                if($req[1] == 'getallarchiveditems'){echo json_encode($admin->getAllArchivedItem());return;}
+            }
         }
+
+        if($req[0] == "staff"){
+            $tokenRes = $auth->verifyTokenBackend("staff");
+            if($tokenRes['is_valid'] == true){
+                if($req[1] == 'getallitem'){echo json_encode($staff->getAllItems());return;}
+                if($req[1] == 'getitembycategory'){echo json_encode($staff->getItemsByCategory($data));return;}
+                if($req[1] == 'getitembystatus'){echo json_encode($staff->getItemsByStatus($data));return;}
+                if($req[1] == 'getitembyquantitydesc'){echo json_encode($staff->getItemsByQuantityDesc($data));return;}
+                if($req[1] == 'getitembyquantityasc'){echo json_encode($staff->getItemsByQuantityAsc($data));return;}
+            }
+        }
+
+        $rm->notFound();
         break;
 
     case 'POST':
         if($req[0] == "login"){
+            if(isset($_COOKIE['Authorization']) && $_COOKIE['Authorization'] !== ''){
+                echo json_encode(($rm->responsePayload(null, "failed", "Already logged in.", 403)));
+                return;
+            }
             if($req[1] == "admin"){echo json_encode($auth->adminlogin($data));return;}
             if($req[1] == "staff"){echo json_encode($auth->stafflogin($data));return;}
         }
@@ -69,10 +89,20 @@ try{
         if($req[0] == "register"){echo json_encode($auth->register($data));return;}
 
         if($req[0] == "admin"){
-            if($req[1] == "createitem"){echo json_encode($admin->addItem($data));return;}
-            if($req[1] == "updateitemquantity"){echo json_encode($admin->updateQuantity($data));return;}
-            if($req[1] == "deleteitem"){echo json_encode($admin->deleteItem($data));return;}
-            if($req[1] == "retrievearchiveditem"){echo json_encode($admin->retrieveArchivedItem($data));return;}
+            $tokenRes = $auth->verifyTokenBackend("admin");
+            if($tokenRes['is_valid'] == true){
+                if($req[1] == "createitem"){echo json_encode($admin->addItem($data));return;}
+                if($req[1] == "updateitemquantity"){echo json_encode($admin->updateQuantity($data));return;}
+                if($req[1] == "deleteitem"){echo json_encode($admin->deleteItem($data));return;}
+                if($req[1] == "retrievearchiveditem"){echo json_encode($admin->retrieveArchivedItem($data));return;}
+            }
+        }
+
+        if($req[0] == "staff"){
+            $tokenRes = $auth->verifyTokenBackend("staff");
+            if($tokenRes['is_valid'] == true){
+                if($req[1] == "updatequantity"){echo json_encode($staff->updateQuantity($data));return;}
+            }
         }
 
         $rm->notFound();
