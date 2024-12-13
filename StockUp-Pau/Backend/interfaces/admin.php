@@ -1,9 +1,9 @@
 <?php
 
 interface AdminInterface{
-    public function retrievedArchivedItem($data);
+    public function retrieveArchivedItem($data);
     public function deleteArchivedItem($data);
-    public function getAllArchivedItem($data);
+    public function getAllArchivedItem();
     public function addItem($data);
     public function getAllItems();
     public function updateQuantity($data);

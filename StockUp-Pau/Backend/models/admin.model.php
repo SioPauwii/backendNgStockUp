@@ -8,14 +8,58 @@ class admin implements AdminInterface {
         $this->pdo = $pdo;
         $this->gm = $gm;
     }
-    public function retrievedArchivedItem($data){
-        
+    public function getAllArchivedItem(){
+        $sql = "SELECT * FROM archive_items ORDER BY archived_at DESC";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute()){
+                $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'Items retrieved successfully', '200');
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Items retrieval failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
     public function deleteArchivedItem($data){
-        
+        $sql = "DELETE FROM archive_items WHERE item_id = :item_id";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute(['item_id' => $data->item_id])){
+                return $this->gm->responsePayload(null, 'success', 'Item deleted successfully', '200');
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Item deletion failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
-    public function getAllArchivedItem($data){
-        
+    public function retrieveArchivedItem($data){
+        $sqlSelect = "SELECT * FROM archive_items WHERE item_id = ?";
+        $sqlInsert = "INSERT INTO inventory (item_id, item_name, category, quantity, status) VALUES (?, ?, ?, ?, ?)";
+        $sqlDelete = "DELETE FROM archive_items WHERE item_id = :item_id";
+        try{
+            $stmt = $this->pdo->prepare($sqlSelect);
+            if($stmt->execute([$data->item_id])){
+                $result = $stmt->fetch(\PDO::FETCH_ASSOC);
+                $stmt = $this->pdo->prepare($sqlInsert);
+                if($stmt->execute([$result['item_id'], $result['item_name'], $result['category'], $result['quantity'], $result['status']])){
+                    $stmt = $this->pdo->prepare($sqlDelete);
+                    if($stmt->execute(['item_id' => $data->item_id])){
+                        return $this->gm->responsePayload(null, 'success', 'Item retrieved successfully', '200');
+                    }else{
+                        return $this->gm->responsePayload(null, 'error', 'Item retrieval failed', '400');
+                    }
+                }else{
+                    return $this->gm->responsePayload(null, 'error', 'Item insertion failed', '400');
+                }
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Item retrieval failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
     public function addItem($data){
         $sql = "INSERT INTO inventory (item_name, category, $data->quantity) VALUES (?, ?, ?)";
@@ -71,21 +115,106 @@ class admin implements AdminInterface {
         }
     }
     public function deleteItem($data){
-        
+        $sql = "SELECT * FROM inventory WHERE item_id = ?";
+        $moveToArchive = "INSERT INTO archive_items (item_id, item_name, category, quantity, status) VALUES (?, ?, ?, ?, ?)";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute([$data->item_id])){
+                $item = $stmt->fetchall()[0];
+                $stmt = $this->pdo->prepare($moveToArchive);
+                if($stmt->execute([$data->item_id, $item['item_name'], $item['category'], $item['quantity'], $item['status']])){
+                    $sql = "DELETE FROM inventory WHERE item_id = ?";
+                    $stmt = $this->pdo->prepare($sql);
+                    if($stmt->execute([$data->item_id])){
+                        return $this->gm->responsePayload(null, 'success', 'Item deleted successfully', '200');
+                    }else{
+                        return $this->gm->responsePayload(null, 'error', 'Item deletion failed', '400');
+                    }
+                }else{
+                    return $this->gm->responsePayload(null, 'error', 'Item deletion failed', '400');
+                }
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Item deletion failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
     public function sortItemsByCategory($data){
-        
+        $allowedCategories = ['Writing Supplies', 'Paper Materials', 'Arts & Crafts', 'Organizational Tools', 'Miscellaneous'];
+        $sqlIF = "SELECT * FROM inventory WHERE category = ? ORDER BY category";
+        $sqlELSE = "SELECT * FROM inventory ORDER BY category";
+        try{
+            $stmtIF = $this->pdo->prepare($sqlIF);
+            $stmtELSE = $this->pdo->prepare($sqlELSE);
+
+            if(in_array($data->category, $allowedCategories)){
+                $stmtIF->execute([$data->category]);
+                $result = $stmtIF->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'Items sorted successfully', '200');
+            }else{
+                $stmtELSE->execute();
+                $result = $stmtELSE->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'Items sorted successfully', '200');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
     public function getItemsByStatus($data){
-        
+        $sql = "SELECT * FROM inventory WHERE status = ?";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute([$data->status])){
+                $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'Items sorted successfully', '200');
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Items sorting failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');    
+        }
     }
     public function getItemsByQuantityDesc($data){
-        
+        $sql = "SELECT * FROM inventory ORDER BY quantity DESC";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute()){
+                $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'Items sorted successfully', '200');
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Items sorting failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
     public function getItemsByQuantityAsc($data){
-        
+        $sql = "SELECT * FROM inventory ORDER BY quantity ASC";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute()){
+                $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'Items sorted successfully', '200');
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'Items sorting failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
     public function getAllUserLogs($data){
-        
+        $sql = "SELECT * FROM user_logs ORDER BY timestamp DESC";
+        try{
+            $stmt = $this->pdo->prepare($sql);
+            if($stmt->execute()){
+                $result = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                return $this->gm->responsePayload($result, 'success', 'User logs retrieved successfully', '200');
+            }else{
+                return $this->gm->responsePayload(null, 'error', 'User logs retrieval failed', '400');
+            }
+        }catch(PDOException $e){
+            return $this->gm->responsePayload(null, 'error', $e, '500');
+        }
     }
 }

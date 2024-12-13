@@ -49,6 +49,12 @@ try{
     case 'GET':
         if($req[0] == "admin"){
             if($req[1] == 'getallitem'){echo json_encode($admin->getAllItems());return;}
+            if($req[1] == 'getitembycategory'){echo json_encode($admin->sortItemsByCategory($data));return;}
+            if($req[1] == 'getitembystatus'){echo json_encode($admin->getItemsByStatus($data));return;}
+            if($req[1] == 'getitembyquantitydesc'){echo json_encode($admin->getItemsByQuantityDesc($data));return;}
+            if($req[1] == 'getitembyquantityasc'){echo json_encode($admin->getItemsByQuantityAsc($data));return;}
+            if($req[1] == 'getalluserlogs'){echo json_encode($admin->getAllUserLogs($data));return;}    
+            if($req[1] == 'getallarchiveditems'){echo json_encode($admin->getAllArchivedItem());return;}
         }
         break;
 
@@ -65,6 +71,8 @@ try{
         if($req[0] == "admin"){
             if($req[1] == "createitem"){echo json_encode($admin->addItem($data));return;}
             if($req[1] == "updateitemquantity"){echo json_encode($admin->updateQuantity($data));return;}
+            if($req[1] == "deleteitem"){echo json_encode($admin->deleteItem($data));return;}
+            if($req[1] == "retrievearchiveditem"){echo json_encode($admin->retrieveArchivedItem($data));return;}
         }
 
         $rm->notFound();
